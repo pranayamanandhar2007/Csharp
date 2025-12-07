@@ -11,14 +11,14 @@ class Mathgame
 
     private Random random;
 
-    public Mathgame(int diff) // Constructor takes diff from main
+    public Mathgame(int diff) // Constructor takes difficulty from main
     {
         random = new Random();
         this.diff = diff;
 
-        if (diff == 1) { life = 4; maxnum = 40; timelimit = 15; }
-        else if (diff == 2) { life = 3; maxnum = 101; timelimit = 12; }
-        else { life = 2; maxnum = 400; timelimit = 20; }
+        if (diff == 1) { life = 4; maxnum = 20; timelimit = 15; }
+        else if (diff == 2) { life = 3; maxnum = 70; timelimit = 12; }
+        else { life = 2; maxnum = 150; timelimit = 20; }
 
         score = 0;
 
@@ -55,6 +55,11 @@ class Mathgame
 
             case 3:
                 op = "*";
+                while (num1 * num2 > maxnum) // Ensure product does not exceed maxnum
+                {
+                    num1 = random.Next(1, maxnum + 1);
+                    num2 = random.Next(1, maxnum + 1);
+                }
                 correctanswer = num1 * num2;
                 break;
 
@@ -117,16 +122,46 @@ class Mathgame
 
     private string GetAnsweWithTimer(int timelimit)
     {
-        Task<string> inputTask = Task.Run(() => Console.ReadLine());
+        // Use a non-blocking character loop so we don't leave a lingering
+        // Console.ReadLine running in the background. Console.ReadLine is
+        // not cancellable so the previous approach could block future input
+        // after a timeout. This loop collects key presses until Enter or
+        // the timeout expires.
+        var deadline = DateTime.Now.AddSeconds(timelimit);
+        var input = string.Empty;
 
-        if (inputTask.Wait(TimeSpan.FromSeconds(timelimit)))
+        while (DateTime.Now < deadline)
         {
-            return inputTask.Result;
+            while (Console.KeyAvailable)
+            {
+                var key = Console.ReadKey(intercept: true);
+                if (key.Key == ConsoleKey.Enter)
+                {
+                    Console.WriteLine();
+                    return input;
+                }
+                else if (key.Key == ConsoleKey.Backspace)
+                {
+                    if (input.Length > 0)
+                    {
+                        // remove last char from input and erase from console
+                        input = input.Substring(0, input.Length - 1);
+                        Console.Write("\b \b");
+                    }
+                }
+                else
+                {
+                    input += key.KeyChar;
+                    Console.Write(key.KeyChar);
+                }
+            }
+
+            // small sleep to avoid busy-waiting
+            System.Threading.Thread.Sleep(40);
         }
-        else
-        {
-            return null;
-        }
+
+        // Timeout expired
+        return null;
     }
 
 
