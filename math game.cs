@@ -1,5 +1,7 @@
 using System;
 using System.Threading.Tasks;
+using System.Text.Json;
+using System.IO;
 class Mathgame
 {
     private int diff;
@@ -16,13 +18,14 @@ class Mathgame
         random = new Random();
         this.diff = diff;
 
-        if (diff == 1) { life = 4; maxnum = 20; timelimit = 15; }
-        else if (diff == 2) { life = 3; maxnum = 70; timelimit = 12; }
-        else { life = 2; maxnum = 150; timelimit = 20; }
+        if (diff == 1) { life = 4; maxnum = 30; timelimit = 15; }
+        else if (diff == 2) { life = 3; maxnum = 100; timelimit = 12; }
+        else { life = 2; maxnum = 250; timelimit = 10; }
 
         score = 0;
 
         Console.WriteLine($"You have {life} lives. You get {timelimit} seconds per question.");
+        Console.WriteLine($"\nYou can skip qns but be ready for the concequences.");
     }
 
     public void Start()
@@ -55,7 +58,7 @@ class Mathgame
 
             case 3:
                 op = "*";
-                while (num1 * num2 > maxnum) // Ensure product does not exceed maxnum
+                while (num1 * num2 > maxnum) // Ensure product does not exceed maxnum to make the game a bit easier
                 {
                     num1 = random.Next(1, maxnum + 1);
                     num2 = random.Next(1, maxnum + 1);
@@ -80,16 +83,19 @@ class Mathgame
 
         string userInput = GetAnsweWithTimer(timelimit);
 
+
         if (userInput == null)
         {
             life--;
             Console.WriteLine($"\n⏰ Time's up! Lives left: {life}");
             return;
         }
+        
+        
         if (!int.TryParse(userInput, out int userAnswer))
         {
             Console.WriteLine("Please enter a valid number.");
-            return;
+            PlayRound();
         }
 
         if (userAnswer == correctanswer)
@@ -112,10 +118,13 @@ class Mathgame
         if (score > hscore)
         {
             hscore = score;
+            var json = JsonSerializer.Serialize(hscore);
+            File.WriteAllText("Highscore.json", json);
             Console.WriteLine("New high score!");
         }
         else
         {
+            var hscore = File.ReadAllText("Highscore.json");
             Console.WriteLine("High score : " + hscore);
         }
     }
@@ -174,7 +183,7 @@ class Mathgame
             {
                 Console.WriteLine("===Math Game===");
 
-                Console.WriteLine("You have 3 lives. For each correct answer, you earn a point. For each wrong answer, you lose a life.");
+                Console.WriteLine("For each correct answer, you earn a point. For each wrong answer, you lose a life.");
                 Console.WriteLine("c1hoose your difficulty: \n 1. easy \n 2. medium \n 3. hard");
 
                 int diff;
